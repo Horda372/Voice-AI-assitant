@@ -27,7 +27,6 @@ def extract_tar_gz(archive_path, output_dir):
     print("Extracted to:", output_dir.resolve())
 
 
-# Create necessary directories
 Path("data").mkdir(exist_ok=True)
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
