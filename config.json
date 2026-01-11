@@ -1,0 +1,28 @@
+{
+    "target_per_class": 3000,
+    "duration": 1.0,
+    "sample_rate": 16000,
+    "commands": [
+        "zero",
+        "one",
+        "two",
+        "three",
+        "four",
+        "five",
+        "six",
+        "seven",
+        "eight",
+        "nine",
+        "on",
+        "off",
+        "stop",
+        "house",
+        "bed",
+        "up"
+    ],
+    "original_dataset_path": "data/dataset",
+    "prepared_dataset_path": "data/prepared_dataset",
+    "commands_path": "data/prepared_dataset/commands",
+    "noise_path": "data/prepared_dataset/noise",
+    "metadata_file": "data/metadata.json"
+}
