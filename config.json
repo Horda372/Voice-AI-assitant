@@ -24,5 +24,6 @@
     "prepared_dataset_path": "data/prepared_dataset",
     "commands_path": "data/prepared_dataset/commands",
     "noise_path": "data/prepared_dataset/noise",
+    "combined_path": "data/prepared_dataset/combined",
     "metadata_file": "data/metadata.json"
 }
