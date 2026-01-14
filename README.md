@@ -1,4 +1,4 @@
-# Voice-AI-assitant
+# Voice-AI-assistant
 
 Aplikacja IoT z funkcją reagowania na polecenia głosowe
 
