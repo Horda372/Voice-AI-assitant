@@ -4,8 +4,22 @@ import tensorflow as tf
 import librosa
 import json
 import time
+import paho.mqtt.client as mqtt
 
-# --- KONFIGURACJA ---
+# --- KONFIGURACJA MQTT ---
+MQTT_BROKER = "broker.emqx.io" # Adres
+MQTT_PORT = 1883
+MQTT_TOPIC = "AI/voice" # Temat, na którym nasłuchuje urządzenie
+
+# --- INICJALIZACJA MQTT ---
+client = mqtt.Client()
+try:
+    client.connect(MQTT_BROKER, MQTT_PORT, 60)
+    print(f"Połączono z brokerem MQTT: {MQTT_BROKER}")
+except Exception as e:
+    print(f"Błąd połączenia MQTT: {e}")
+
+# --- KONFIGURACJA Modelu---
 MODEL_PATH = "voice_command_model.h5"
 CLASSES_PATH = "classes.npy"
 CONFIG_PATH = "config.json"
@@ -25,6 +39,34 @@ model = tf.keras.models.load_model(MODEL_PATH)
 classes = np.load(CLASSES_PATH)
 config = json.load(open(CONFIG_PATH))
 
+# --- LOGIKA STEROWANIA ---
+last_digit = None
+last_digit_time = 0
+TIMEOUT = 5.0  # Masz 5 sekund na powiedzenie on/off po numerze
+
+
+def process_command(cmd):
+    global last_digit, last_digit_time
+
+    # Mapowanie komend (jeśli model zwraca np. 'one' zamiast '1')
+    digits = {"zero": "0", "one": "1", "two": "2", "three": "3", "four": "4",
+              "five": "5", "six": "6", "seven": "7", "eight": "8", "nine": "9"}
+
+    # 1. Sprawdź czy to cyfra
+    if cmd in digits:
+        last_digit = digits[cmd]
+        last_digit_time = time.time()
+        print(f"Wybrano pokój: {last_digit}. Czekam na komendę on/off...")
+
+    # 2. Sprawdź czy to on/off
+    elif cmd in ["on", "off"]:
+        if last_digit and (time.time() - last_digit_time < TIMEOUT):
+            payload = f"{last_digit} {cmd}"
+            client.publish(MQTT_TOPIC, payload)
+            print(f"Wysłano MQTT: [{MQTT_TOPIC}] -> {payload}")
+            last_digit = None  # Reset po wysłaniu
+        else:
+            print("Najpierw podaj numer(0-9)!")
 
 def preprocess_audio(audio_data):
     """Przetwarzanie surowego dźwięku na spektrogram."""
@@ -52,9 +94,9 @@ def start_live_recognition():
 
     print(f"\nSystem gotowy. Nasłuchiwanie komend: {list(classes)}")
 
-    try:
-        with sd.InputStream(samplerate=TARGET_SR, channels=1, dtype='float32') as stream:
-            while True:
+
+    with sd.InputStream(samplerate=TARGET_SR, channels=1, dtype='float32') as stream:
+        while True:
                 # 1. Pobranie fragmentu dźwięku
                 new_chunk, _ = stream.read(step_samples)
                 new_chunk = new_chunk.flatten()
@@ -77,17 +119,9 @@ def start_live_recognition():
                     # 5. Wykrycie komendy
                     if prob > THRESHOLD:
                         print(f"Rozpoznano: {command} ({prob:.2f})")
-
-                        # --- MIEJSCE NA MQTT ---
-                        # Tutaj dodamy funkcję wysyłającą wiadomość
-
                         # Reset bufora, aby nie wykryć tego samego słowa w kolejnym przesunięciu
                         audio_buffer = np.zeros(window_samples, dtype=np.float32)
                         time.sleep(0.3)
-
-    except KeyboardInterrupt:
-        print("\nZatrzymano nasłuchiwanie.")
-
 
 if __name__ == "__main__":
     start_live_recognition()
