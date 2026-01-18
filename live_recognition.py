@@ -32,8 +32,8 @@ N_FFT = 400
 HOP_LENGTH = 160
 
 # Parametry detekcji
-THRESHOLD = 0.85  # Minimalna pewność, by uznać komendę
-SILENCE_THRESHOLD = 0.02  # Minimalna głośność (amplituda), by w ogóle analizować (zmniejszono z 0.1)
+THRESHOLD = 0.80  # Minimalna pewność, by uznać komendę
+SILENCE_THRESHOLD = 0.1  # Minimalna głośność (amplituda)
 COOLDOWN = 1.0  # Czas blokady po wykryciu (s)
 
 # --- ŁADOWANIE ZASOBÓW ---
@@ -97,10 +97,7 @@ def process_command(cmd, probability):
 
 
 def preprocess_audio(audio_data):
-    """
-    Kluczowa funkcja z zabezpieczeniem przed ciszą.
-    Zwraca None, jeśli sygnał to tylko szum tła.
-    """
+
     # 1. Tworzenie mel-spektrogramu
     mel = librosa.feature.melspectrogram(
         y=audio_data, sr=TARGET_SR, n_fft=N_FFT,
@@ -108,9 +105,6 @@ def preprocess_audio(audio_data):
     )
     log_mel = librosa.power_to_db(mel, ref=np.max)
 
-    # 2. ZABEZPIECZENIE: Sprawdzenie "płaskości" sygnału (szumu)
-    # Cisza ma bardzo małe odchylenie standardowe.
-    # Jeśli znormalizujemy ciszę, wyjdą losowe wzory ("six"/"eight").
     current_std = np.std(log_mel)
 
     # Jeśli odchylenie jest poniżej 3.0 dB, uznajemy to za szum tła i odrzucamy
@@ -153,7 +147,7 @@ def start_live_recognition():
             audio_buffer[-step_samples:] = new_data.flatten()
 
             # --- WSTĘPNA FILTRACJA (Bramka szumów - amplituda) ---
-            # Jeśli jest absolutna cisza, nawet nie próbuj liczyć spektrogramu
+
             if np.max(np.abs(audio_buffer)) < SILENCE_THRESHOLD:
                 continue
 
